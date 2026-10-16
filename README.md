@@ -8,6 +8,25 @@ One end-to-end prior authorization scenario (**CPT 72148 · MRI lumbar spine**) 
 
 ---
 
+## Implementation status
+
+| Area | Status | Notes |
+|------|--------|-------|
+| ADK agents (intake · prior auth · CDS) | **Implemented (local)** | Google ADK `LlmAgent`s in `agents/` |
+| A2A handoffs + MCP clinical tools | **Implemented (local)** | FastMCP server over demo FHIR / policy data |
+| Live Run UI (React + classic HTML) | **Implemented (local)** | SSE pipeline + human-in-the-loop gate |
+| Audit ledger | **Implemented (local)** | Case trail for demo runs |
+| Gemini reasoning | **Optional live API** | AI Studio free tier when `DEMO_MODE=false` + `GOOGLE_API_KEY` |
+| Fixture / offline path | **Implemented** | `DEMO_MODE=true` — $0; MCP + A2A still exercise real code paths |
+| Vertex AI / Workspace Gemini | **Not used by default** | Keep `GOOGLE_GENAI_USE_VERTEXAI=FALSE` |
+| Cloud Run / GKE deploy | **Not deployed** | Optional future — not required for the demo |
+
+**Simulated vs cloud:** Orchestration, MCP tools, A2A flow, and UI are real local services. Clinical data and payer policy are **synthetic**. LLM calls are either fixture-backed (`DEMO_MODE=true`) or optional **AI Studio** API — not a production Vertex / Cloud Run deployment.
+
+Architecture diagram: below and [docs/architecture.md](docs/architecture.md)
+
+---
+
 ## Architecture
 
 ```mermaid
@@ -117,10 +136,16 @@ Fault injection: MCP timeout, eligibility outage, missing policy, grounding fail
 | Tests | `tests/` | Pipeline + MCP contract tests; CI |
 | Deploy | _(future)_ | Cloud Run / GKE — optional, not required for the demo |
 
-```bash
-# unit tests
-.venv/bin/python -m pytest tests/ -q
+### Reproducible tests
 
-# evaluation smoke
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp -n .env.example .env   # DEMO_MODE=true for offline path
+
+.venv/bin/python -m pytest tests/ -q
 .venv/bin/python -m evaluation.run_eval
 ```
+
+Expected: unit/smoke tests green; evaluation smoke scores the synthetic CPT 72148 case. For the full Live Run UI, follow Quick start above (backend + `web/` Vite app).
